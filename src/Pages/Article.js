@@ -2,7 +2,7 @@ import { useParams } from "react-router-dom";
 import articles from "./article-content";
 
 const Article = () => {
-  //pull article id straight from useParams
+  //pull article id straight from useParams, which is an object with keys of "articleId" value: whatever the current string at the specific part of URL
   const { articleId } = useParams();
   //using js find function to specify article with a name property equal to article id
   const article = articles.find(article => article.name === articleId);
@@ -10,8 +10,9 @@ const Article = () => {
   return (
     <>
       <h1>{article.title}</h1>
-        {article.content.map(paragraph => (
-          <p>{paragraph}</p>
+        {article.content.map((paragraph, i) => (
+          //since list will never change, we can add i here as the key
+          <p key={i}>{paragraph}</p>
         ))}
     </>
   );

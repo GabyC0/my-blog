@@ -1,6 +1,10 @@
 const Home = () => {
     return (
-        <h1>This is the home page</h1>
+        <>
+            <h1>Gumball Travels</h1>
+            <p>Previous Adventure</p>
+            <p>Next Adventure</p>
+        </>
     )
 }
 

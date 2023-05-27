@@ -1,31 +1,52 @@
 import express from "express";
-
-let articlesInfo = [
-  {
-    name: "choosing-where",
-    upvotes: 0,
-    comments: [],
-  },
-  {
-    name: "trip-planning",
-    upvotes: 0,
-    comments: [],
-  },
-  {
-    name: "packing-essentials",
-    upvotes: 0,
-    comments: [],
-  },
-];
+import { MongoClient } from "mongodb";
 
 //creates new express app for us
 const app = express();
 //In order for body property to work correctly in express app we need to add middleware. When app receives json, parse it and return
 app.use(express.json());
 
-app.put('/api/articles/:name/upvote', (req, res) => {
+//allows our client side to load info for given article
+
+app.get('/api/articles/:name', async (req, res) => {
+  const { name } = req.params;
+
+  //connect to mongodb and make query pass url of our mongo db 
+  const client = new MongoClient('mongodb://127.0.0.1:27017');
+  //have client connect
+  await client.connect();
+
+  //get specific db 
+  const db = client.db('react-blog-db');
+
+  //query to load article by name
+  const article = await db.collection('articles').findOne({ name });
+
+  //if article doesn't exist
+  if (article) {
+    res.json(article);
+  } else {
+    res.sendStatus(404);
+  }
+
+  //test by sending article back to client
+  res.json(article);
+});
+
+app.put('/api/articles/:name/upvote', async (req, res) => {
     const { name } = req.params;
-    const article = articlesInfo.find(a => a.name === name);
+
+    const client = new MongoClient('mongodb://127.0.0.1:27017');
+    await client.connect();
+
+    const db = client.db('react-blog-db');
+    //to update article of name param and increment by 1
+    await db.collection('articles').updateOne({ name }, {
+      $inc: { upvotes: 1},
+    });
+    //to load articles
+    const article = await db.collection('articles').findOne({ name });
+
     if(article) {
         article.upvotes += 1;
         res.send(`The ${name} article now has ${article.upvotes} upvotes!!!`);
@@ -37,7 +58,17 @@ app.put('/api/articles/:name/upvote', (req, res) => {
 app.post('/api/articles/:name/comments', (req, res) => {
     //format the comments are going to be specified in when sent to server as req
     //get both properties from request body
-    const { postedBy, text } = req.body
+    const { name } = req.params;
+    const { postedBy, text } = req.body;
+
+    const article = articlesInfo.find(a => a.name === name);
+    
+    if (article) {
+        article.comments.push({postedBy, text});
+        res.send(article.comments);
+    } else {
+        res.send("That article doesn't exist!");
+    }
 });
 
 //define endpoints and what you want server to do when an endpoint receives a request

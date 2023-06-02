@@ -1,5 +1,5 @@
 import express from "express";
-import { MongoClient } from "mongodb";
+import { db, dbConnection } from './db.js';
 
 //creates new express app for us
 const app = express();
@@ -12,12 +12,12 @@ app.get('/api/articles/:name', async (req, res) => {
   const { name } = req.params;
 
   //connect to mongodb and make query pass url of our mongo db 
-  const client = new MongoClient('mongodb://127.0.0.1:27017');
+  //const client = new MongoClient('mongodb://127.0.0.1:27017');
   //have client connect
-  await client.connect();
+  //await client.connect();
 
   //get specific db 
-  const db = client.db('react-blog-db');
+  //const db = client.db('react-blog-db');
 
   //query to load article by name
   const article = await db.collection('articles').findOne({ name });
@@ -36,10 +36,10 @@ app.get('/api/articles/:name', async (req, res) => {
 app.put('/api/articles/:name/upvote', async (req, res) => {
     const { name } = req.params;
 
-    const client = new MongoClient('mongodb://127.0.0.1:27017');
-    await client.connect();
+    //const client = new MongoClient('mongodb://127.0.0.1:27017');
+    //await client.connect();
 
-    const db = client.db('react-blog-db');
+    //const db = client.db('react-blog-db');
     //to update article of name param and increment by 1
     await db.collection('articles').updateOne({ name }, {
       $inc: { upvotes: 1},
@@ -48,23 +48,28 @@ app.put('/api/articles/:name/upvote', async (req, res) => {
     const article = await db.collection('articles').findOne({ name });
 
     if(article) {
-        article.upvotes += 1;
         res.send(`The ${name} article now has ${article.upvotes} upvotes!!!`);
     } else {
         res.send("That article doesn't exist");
     }
 });
 
-app.post('/api/articles/:name/comments', (req, res) => {
+app.post('/api/articles/:name/comments', async (req, res) => {
     //format the comments are going to be specified in when sent to server as req
     //get both properties from request body
     const { name } = req.params;
     const { postedBy, text } = req.body;
 
-    const article = articlesInfo.find(a => a.name === name);
+    // const client = new MongoClient('mongodb://127.0.0.1:27017');
+    // await client.connect();
+
+    // const db = client.db('react-blog-db');
+
+    await db.collection('articles').updateOne({ name }, { $push: { comments: { postedBy, text } }});
+
+    const article = await db.collection('articles').findOne({ name });
     
     if (article) {
-        article.comments.push({postedBy, text});
         res.send(article.comments);
     } else {
         res.send("That article doesn't exist!");
@@ -84,7 +89,10 @@ app.post('/api/articles/:name/comments', (req, res) => {
 // });
 
 //tell our server to listen, func takes an argument to specify port it should listen on and a callback that will get called when server is listening
-app.listen(8000, () => {
-    console.log('Server is listening on port 8000');
-});
 
+dbConnection(() => {
+  console.log('Successfully connected to database');
+  app.listen(8000, () => {
+    console.log('Server is listening on port 8000');
+  })
+})
